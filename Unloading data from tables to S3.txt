@@ -1,0 +1,31 @@
+create or replace storage integration covid_aws_int
+  TYPE = EXTERNAL_STAGE
+  STORAGE_PROVIDER = S3
+  ENABLED = TRUE 
+  STORAGE_AWS_ROLE_ARN = 'arn_num'
+  STORAGE_ALLOWED_LOCATIONS = ('s3://snowflake-aws-bucket-783/', 's3://snowflake-aws-bucket-783/unloading/')
+  COMMENT = 'Integration with aws s3 buckets' ;
+
+
+DESC integration covid_aws_int;  
+
+-- Create File Format
+CREATE OR REPLACE FILE FORMAT COVID_DBT.DBT_SCHEMA.covid_file_format
+TYPE = 'CSV',
+field_delimiter = ',',
+SKIP_HEADER = 0,
+EMPTY_FIELD_AS_NULL = true;
+
+-- Create a stage
+
+CREATE or REPLACE STAGE COVID_DBT.DBT_SCHEMA.covid_unloading_stage
+    URL = 's3://snowflake-aws-bucket-783/unloading/'
+    STORAGE_INTEGRATION = covid_aws_int
+    file_format = COVID_DBT.DBT_SCHEMA.covid_file_format;
+
+LIST @COVID_DBT.DBT_SCHEMA.covid_unloading_stage;
+
+-- Copy to the unloading stage
+
+COPY into @COVID_DBT.DBT_SCHEMA.covid_unloading_stage/who_cases
+from COVID_DBT.DBT_SCHEMA.WHO_CASES;
